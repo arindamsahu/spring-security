@@ -15,6 +15,19 @@
  */
 package org.springframework.security.web.context;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.springframework.security.authentication.AuthenticationTrustResolver;
+import org.springframework.security.authentication.AuthenticationTrustResolverImpl;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.StatelessAuthentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.context.SecurityContextHolderStrategy;
+import org.springframework.util.Assert;
+import org.springframework.util.ClassUtils;
+import org.springframework.web.util.WebUtils;
+
 import javax.servlet.AsyncContext;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
@@ -22,18 +35,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.springframework.security.authentication.AuthenticationTrustResolver;
-import org.springframework.security.authentication.AuthenticationTrustResolverImpl;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.context.SecurityContextHolderStrategy;
-import org.springframework.util.Assert;
-import org.springframework.util.ClassUtils;
-import org.springframework.web.util.WebUtils;
 
 /**
  * A {@code SecurityContextRepository} implementation which stores the security context in
@@ -387,6 +388,10 @@ public class HttpSessionSecurityContextRepository implements SecurityContextRepo
 		}
 
 		private HttpSession createNewSessionIfAllowed(SecurityContext context) {
+			if (context.getAuthentication() instanceof StatelessAuthentication) {
+				return null;
+			}
+
 			if (httpSessionExistedAtStartOfRequest) {
 				if (logger.isDebugEnabled()) {
 					logger.debug("HttpSession is now null, but was not null at start of request; "

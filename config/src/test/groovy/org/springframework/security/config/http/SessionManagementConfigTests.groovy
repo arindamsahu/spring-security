@@ -18,8 +18,12 @@ package org.springframework.security.config.http
 import org.springframework.mock.web.MockFilterChain
 import org.springframework.mock.web.MockHttpServletRequest
 import org.springframework.mock.web.MockHttpServletResponse
+import org.springframework.security.authentication.AbstractAuthenticationToken
+import org.springframework.security.authentication.AuthenticationProvider
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.Authentication
+import org.springframework.security.core.AuthenticationException
+import org.springframework.security.core.StatelessAuthentication
 import org.springframework.security.core.authority.AuthorityUtils
 import org.springframework.security.core.context.SecurityContext
 import org.springframework.security.core.context.SecurityContextHolder
@@ -48,7 +52,6 @@ import javax.servlet.http.HttpServletResponse
 import static org.junit.Assert.assertSame
 import static org.mockito.Matchers.any
 import static org.mockito.Mockito.verify
-
 /**
  * Tests session-related functionality for the &lt;http&gt; namespace element and &lt;session-management&gt;
  *
@@ -425,6 +428,82 @@ class SessionManagementConfigTests extends AbstractHttpConfigTests {
 		expect:
 		filter instanceof SessionManagementFilter
 		filter.invalidSessionStrategy.destinationUrl == '/timeoutUrl'
+	}
+
+	def doFilterWhenStatelessAuthenticationThenNoSessionCreated() {
+		setup:
+		httpAutoConfig() {
+			csrf(disabled:true)
+		}
+		xml.'authentication-manager'() {
+			'authentication-provider'(ref: 'stateless')
+		}
+		bean('stateless', StatelessAuthenticationProvider.class.name)
+		createAppContext('')
+
+		MockHttpServletRequest request = new MockHttpServletRequest(method:'POST')
+		request.servletPath = '/login'
+		MockHttpServletResponse response  = new MockHttpServletResponse()
+		MockFilterChain chain = new MockFilterChain()
+
+		when:
+		springSecurityFilterChain.doFilter(request,response, chain)
+
+		then:
+		request.getSession(false) == null
+	}
+
+	def doFilterWhenStatelessAuthenticationThenAlwaysSessionOverrides() {
+		setup:
+		httpCreateSession('always') {
+			csrf(disabled:true)
+		}
+		xml.'authentication-manager'() {
+			'authentication-provider'(ref: 'stateless')
+		}
+		bean('stateless', StatelessAuthenticationProvider.class.name)
+		createAppContext('')
+
+		MockHttpServletRequest request = new MockHttpServletRequest(method:'POST')
+		request.servletPath = '/login'
+		MockHttpServletResponse response  = new MockHttpServletResponse()
+		MockFilterChain chain = new MockFilterChain()
+
+		when:
+		springSecurityFilterChain.doFilter(request,response, chain)
+
+		then:
+		request.getSession(false) != null
+	}
+
+	static class StatelessAuthenticationProvider implements AuthenticationProvider {
+
+		@Override
+		Authentication authenticate(Authentication authentication) throws AuthenticationException {
+			return new SomeStatelessAuthentication()
+		}
+
+		@Override
+		boolean supports(Class<?> authentication) {
+			return true
+		}
+	}
+
+	static class SomeStatelessAuthentication extends AbstractAuthenticationToken
+			implements StatelessAuthentication {
+		SomeStatelessAuthentication() {
+			super(null);
+		}
+
+		@Override
+		public Object getCredentials() {
+			return null;
+		}
+
+		@Override
+		public Object getPrincipal() {
+			return null;
+		}
 	}
 
 }

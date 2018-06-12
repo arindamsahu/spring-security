@@ -15,15 +15,6 @@
  */
 package org.springframework.security.web.session;
 
-import java.io.IOException;
-
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import org.springframework.security.authentication.AuthenticationTrustResolver;
 import org.springframework.security.authentication.AuthenticationTrustResolverImpl;
 import org.springframework.security.core.Authentication;
@@ -36,6 +27,14 @@ import org.springframework.security.web.authentication.session.SessionFixationPr
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.util.Assert;
 import org.springframework.web.filter.GenericFilterBean;
+
+import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 
 /**
  * Detects that a user has been authenticated since the start of the request and, if they
@@ -108,6 +107,7 @@ public class SessionManagementFilter extends GenericFilterBean {
 
 					return;
 				}
+
 				// Eagerly save the security context to make it available for any possible
 				// re-entrant
 				// requests which may occur before the current request completes.
